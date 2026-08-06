@@ -1,0 +1,24 @@
+# 虚拟环境 ( venv 文件夹很大，绝对不能提交！)
+venv/
+.venv/
+env/
+
+# 环境变量 (里面有阿里云 API Key，绝对不能提交！)
+.env
+
+# Python 缓存文件
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE 配置 (如果用 PyCharm)
+.idea/
+.vscode/
+
+# 上传的图片 (本地临时文件，不用备份)
+storage/uploads/
+*.log
+
+# 操作系统隐藏文件
+.DS_Store
+Thumbs.db

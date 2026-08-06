@@ -1,0 +1,7 @@
+#fastapi==0.104.1
+#uvicorn[standard]==0.24.0
+python-multipart==0.0.32
+python-dotenv==1.2.2         # 用于加载 .env 文件
+#pydantic==2.5.0
+dashscope>=1.14.0             # 阿里云百炼 SDK
+#Pillow==10.1.0                # 保留以备后续处理图片
