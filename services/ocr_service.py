@@ -32,7 +32,6 @@ def extract_text_from_image(image_path: str) -> str:
     """
     使用阿里云百炼 qwen3.5-ocr 模型提取图片文字，并自动清洗
     """
-
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"图片文件未找到: {image_path}")
 
