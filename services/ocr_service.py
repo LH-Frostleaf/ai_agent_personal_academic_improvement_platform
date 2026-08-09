@@ -9,6 +9,9 @@ import re   # Python 内置的正则表达式模块
 # 设置 API Key（全局只需设置一次）
 dashscope.api_key = settings.DASHSCOPE_API_KEY
 
+# 设置每张图片最大大小
+MAX_IMAGE_SIZE = 10 * 1024 * 1024
+
 
 def save_uploaded_file(upload_file) -> str:
     """
@@ -33,7 +36,6 @@ def extract_text_from_image(image_path: str) -> str:
         raise FileNotFoundError(f"图片文件未找到: {image_path}")
 
     file_size = os.path.getsize(image_path)
-    MAX_IMAGE_SIZE = 10 * 1024 * 1024
     if file_size > MAX_IMAGE_SIZE:
         raise ValueError(f"图片大小 {file_size / 1024 / 1024:.1f}MB 超过限制 20MB")
 
