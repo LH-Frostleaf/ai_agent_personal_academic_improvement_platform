@@ -25,50 +25,54 @@ def save_uploaded_file(upload_file) -> str:
 
     return file_path
 
-
 def extract_text_from_image(image_path: str) -> str:
     """
-    使用阿里云百炼 qwen3.5-ocr 模型提取图片文字
+    使用阿里云百炼 qwen3.5-ocr 模型提取图片文字，并自动清洗
     """
-    # 检查图片是否存在
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"图片文件未找到: {image_path}")
 
-    # 调用 DashScope 的多模态对话接口
+    file_size = os.path.getsize(image_path)
+    MAX_IMAGE_SIZE = 10 * 1024 * 1024
+    if file_size > MAX_IMAGE_SIZE:
+        raise ValueError(f"图片大小 {file_size / 1024 / 1024:.1f}MB 超过限制 20MB")
+
     try:
         response = MultiModalConversation.call(
-            model="qwen3.5-ocr",  # 模型名称
+            model="qwen3.5-ocr",
             messages=[
                 {
                     "role": "user",
                     "content": [
-                        {"image": image_path},  # 本地图片路径
-                        {"text": "请提取图片中的所有文字内容。"}  # 指令
+                        {"image": image_path},
+                        {"text": "请提取图片中的所有文字内容。"}
                     ]
                 }
             ],
-            temperature=0.1,  # OCR 任务建议低温度
+            temperature=0.1,
         )
 
-        # 解析返回结果
-        # 根据 API 文档，返回结构为 response.output.choices[0].message.content[0]["text"]
+        # 防御性取值
+        if not response or not hasattr(response, 'output'):
+            raise RuntimeError("阿里云 OCR 返回数据格式异常（缺少 output 字段）")
+        if not response.output or not response.output.choices:
+            raise RuntimeError("阿里云 OCR 返回数据格式异常（缺少 choices 字段）")
+
         result_text = response.output.choices[0].message.content[0]["text"]
-        return result_text
+
+        # 如果结果为空，提前返回友好提示
+        if not result_text or not result_text.strip():
+            return "[未检测到任何文字，请检查图片是否清晰或是否包含文字]"
+
+        # 数据清洗
+        # 1. 压缩多个空白字符（空格、换行、制表符等）为单个空格
+        cleaned = re.sub(r'\s+', ' ', result_text)
+        # 2. 移除不可见控制字符
+        cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
+        # 3. 去除首尾空格
+        cleaned = cleaned.strip()
+
+        return cleaned
 
     except Exception as e:
-        # 抛出更具体的错误，上层会捕获并返回 500
         raise RuntimeError(f"DashScope OCR 调用失败: {str(e)}")
-
-
-def clean_ocr_text(raw_text: str) -> str:
-    """
-    清洗 OCR 出来的文字
-    """
-
-    # 1. 压缩多个空白字符
-    cleaned = re.sub(r'\s+', ' ', raw_text)
-    # 2. 移除不可见控制字符
-    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
-    # 3. 去除首尾空格
-    cleaned = cleaned.strip()
-    return cleaned

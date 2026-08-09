@@ -1,5 +1,3 @@
-# services/perception_service.py
-
 from models.schemas import UserAcademicProfile
 
 

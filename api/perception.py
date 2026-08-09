@@ -1,7 +1,8 @@
-# api/perception.py
+import os
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from models.schemas import MistakeRecord, UserAcademicProfile, CourseStudyInfo
+from config.upload_config import ALLOWED_EXTENSIONS
+from models.schemas import MistakeRecord, CourseStudyInfo, UserAcademicProfile
 from services.ocr_service import save_uploaded_file, extract_text_from_image
 from datetime import datetime
 from typing import List
@@ -22,14 +23,13 @@ async def upload_mistake(
     题目解析：上传错题截图 + 所属课程
     """
     # 1. 校验文件类型
-    allowed_ext = ('.png', '.jpg', '.jpeg', '.bmp')
-    if not screenshot.filename.lower().endswith(allowed_ext):
-        raise HTTPException(400, f"只支持 {', '.join(allowed_ext)} 格式")
+    if not screenshot.filename.lower().endswith(tuple(ALLOWED_EXTENSIONS)):
+        raise HTTPException(400, f"只支持 {ALLOWED_EXTENSIONS} 格式")
 
     saved_path = None
     try:
         # 2. 保存图片并 OCR
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         saved_path = await loop.run_in_executor(None, save_uploaded_file, screenshot)
         ocr_text = await loop.run_in_executor(None, extract_text_from_image, saved_path)
 
@@ -49,17 +49,18 @@ async def upload_mistake(
             "code": 200,
             "message": f"✅ 已收录 {course_name} 错题，当前共 {len(user_profile.mistakes)} 道",
             "data": {
-                "mistake": mistake.dict(),
+                "mistake": mistake.model_dump(),
                 "total_count": len(user_profile.mistakes)
             }
         }
 
     except Exception as e:
-        # 异常处理（同之前）
+        # 异常处理
         raise HTTPException(500, f"服务器处理出错: {str(e)}")
     finally:
         # 注意：这里不删除图片，因为后面要用于回溯
-        # 或者你可以保留，定期清理
+        # 或者可以定期清理：
+        # os.remove(saved_path)
         pass
 
 
@@ -71,18 +72,19 @@ async def update_study_profile(
     学习情况：更新各科成绩和学习时长
     """
     try:
-        # 更新成绩
         for course in courses:
+            # 更新成绩
             if course.score is not None:
                 # 校验成绩范围
                 if course.score < 0 or course.score > 100:
                     raise HTTPException(400, f"{course.course_name} 成绩必须在 0-100 之间")
                 user_profile.course_scores[course.course_name] = course.score
 
+            # 累加学习时长
             if course.study_duration is not None:
                 if course.study_duration < 0:
                     raise HTTPException(400, f"{course.course_name} 学习时长不能为负数")
-                user_profile.study_duration[course.course_name] = course.study_duration
+                user_profile.study_duration[course.course_name] += course.study_duration
 
         return {
             "code": 200,
@@ -105,7 +107,7 @@ async def get_user_profile():
     return {
         "code": 200,
         "data": {
-            "mistakes": [m.dict() for m in user_profile.mistakes],
+            "mistakes": [m.model_dump() for m in user_profile.mistakes],
             "course_scores": user_profile.course_scores,
             "study_duration": user_profile.study_duration,
             "summary": user_profile.summary,

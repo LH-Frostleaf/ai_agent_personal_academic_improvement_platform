@@ -1,5 +1,3 @@
-# models/schemas.py
-
 from pydantic import BaseModel, Json
 from typing import Optional, Dict, List
 from datetime import datetime
