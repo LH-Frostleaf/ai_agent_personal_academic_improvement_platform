@@ -1,10 +1,10 @@
 # api/perception.py
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from models.schemas import MistakeRecord, UserAcademicProfile
+from models.schemas import MistakeRecord, UserAcademicProfile, CourseStudyInfo
 from services.ocr_service import save_uploaded_file, extract_text_from_image
 from datetime import datetime
-import os
+from typing import List
 import asyncio
 
 router = APIRouter()
