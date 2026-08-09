@@ -6,6 +6,7 @@ from datetime import datetime
 # ===== 1. 题目解析模块 =====
 class MistakeRecord(BaseModel):
     """单条错题记录"""
+    user_id: str # 用户id
     course_name: str  # 所属课程（强制）
     ocr_text: str  # OCR 识别的文字
     image_path: str  # 图片存储路径（用于追溯）
@@ -17,6 +18,7 @@ class MistakeRecord(BaseModel):
 # ===== 2. 学习情况模块 =====
 class CourseStudyInfo(BaseModel):
     """单门课程的学习情况"""
+    user_id: str  # 用户id
     course_name: str
     score: Optional[float] = None  # 0-100
     study_duration: Optional[float] = None  # 小时
@@ -24,7 +26,7 @@ class CourseStudyInfo(BaseModel):
 # ===== 3. 用户学业画像（汇总） =====
 class UserAcademicProfile(BaseModel):
     """用户的完整学业画像（用于后续诊断）"""
-    user_id: Optional[str] = None  # 后续加用户系统
+    user_id: str  # 后续加用户系统
     mistakes: List[MistakeRecord] = []  # 所有错题记录
     course_scores: Dict[str, float] = {}  # {"高数": 78, "英语": 85}
     study_duration: Dict[str, float] = {}  # {"高数": 2.5, "英语": 1.0}

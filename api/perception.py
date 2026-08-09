@@ -16,6 +16,7 @@ user_profile = UserAcademicProfile()
 
 @router.post("/mistakes/upload")
 async def upload_mistake(
+        id: str,
         screenshot: UploadFile = File(...),
         course_name: str = Form(...)  # 强制选择所属课程
 ):
@@ -35,6 +36,7 @@ async def upload_mistake(
 
         # 3. 生成错题记录（此时还没有知识点标签，后续 RAG 处理）
         mistake = MistakeRecord(
+            user_id = id,
             course_name=course_name,
             ocr_text=ocr_text,
             image_path=saved_path,
@@ -107,6 +109,7 @@ async def get_user_profile():
     return {
         "code": 200,
         "data": {
+            "user_id": user_profile.user_id,
             "mistakes": [m.model_dump() for m in user_profile.mistakes],
             "course_scores": user_profile.course_scores,
             "study_duration": user_profile.study_duration,
