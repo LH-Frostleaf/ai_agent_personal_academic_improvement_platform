@@ -14,25 +14,12 @@ class MistakeRecord(BaseModel):
     # knowledge_points: List[str]         # 提取的知识点标签（RAG后填充）
     # difficulty: str                     # 难度等级（可选）
 
-
-class MistakeUploadRequest(BaseModel):
-    """上传错题的请求体（Form 形式，但用 Pydantic 定义字段类型）"""
-    course_name: str  # 所属课程
-    # 图片通过 UploadFile 单独传
-
-
 # ===== 2. 学习情况模块 =====
 class CourseStudyInfo(BaseModel):
     """单门课程的学习情况"""
     course_name: str
     score: Optional[float] = None  # 0-100
     study_duration: Optional[float] = None  # 小时
-
-
-class StudyProfileUpdateRequest(BaseModel):
-    """更新学习情况的请求"""
-    courses: List[CourseStudyInfo]  # 前端传课程列表
-
 
 # ===== 3. 用户学业画像（汇总） =====
 class UserAcademicProfile(BaseModel):
