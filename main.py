@@ -20,5 +20,3 @@ app.include_router(perception.router, prefix="/api/v1", tags=["感知模块"])
 @app.get("/")
 def root():
     return {"message": "感知模块已启动，请访问 /docs 查看API文档"}
-
-444

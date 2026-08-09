@@ -7,8 +7,4 @@
     <orderEntry type="jdk" jdkName="Python 3.13 (基于 AI Agent 的大学生个性化学业诊断与提升平台) (3)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
-  <component name="PyDocumentationSettings">
-    <option name="format" value="PLAIN" />
-    <option name="myDocStringFormat" value="Plain" />
-  </component>
 </module>
