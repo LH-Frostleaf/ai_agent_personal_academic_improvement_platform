@@ -194,18 +194,86 @@ async def update_study_profile(
     }
 
 
+# ==================== 3. 获取用户画像接口 ====================
 @router.get("/profile")
-async def get_user_profile():
+async def get_user_profile(
+    db: Session = Depends(get_db)
+):
     """
     获取用户当前学业画像（用于前端数据看板）
     """
+    # 1. 获取当前用户
+    current_user = get_or_create_test_user(db)
+
+    # 2. 查询所有错题
+    mistakes = db.query(Mistake).filter(
+        Mistake.user_id == current_user.id
+    ).order_by(Mistake.created_at.desc()).all()
+
+    # 3. 查询最新成绩（每个课程取最新一条记录）
+    subquery = db.query(
+        StudyRecord.course_name,
+        func.max(StudyRecord.id).label('latest_id')
+    ).filter(
+        StudyRecord.user_id == current_user.id
+    ).group_by(
+        StudyRecord.course_name
+    ).subquery()
+
+    latest_records = db.query(StudyRecord).join(
+        subquery,
+        StudyRecord.id == subquery.c.latest_id
+    ).all()
+
+    latest_scores = {r.course_name: r.score for r in latest_records}
+
+    # 4. 查询累计学习时长
+    duration_summary = db.query(
+        StudyRecord.course_name,
+        func.sum(StudyRecord.study_duration).label('total_duration')
+    ).filter(
+        StudyRecord.user_id == current_user.id
+    ).group_by(
+        StudyRecord.course_name
+    ).all()
+
+    total_durations = {row.course_name: row.total_duration for row in duration_summary}
+
+    # 5. 生成摘要
+    summary_parts = []
+    if latest_scores:
+        valid_scores = [v for v in latest_scores.values() if v is not None]
+        if valid_scores:
+            avg = sum(valid_scores) / len(valid_scores)
+            summary_parts.append(f"各科最新平均成绩 {avg:.1f} 分")
+    if total_durations:
+        total_hours = sum(total_durations.values())
+        summary_parts.append(f"累计学习时长 {total_hours:.1f} 小时")
+    if mistakes:
+        summary_parts.append(f"已收录 {len(mistakes)} 道错题")
+
+    summary = "；".join(summary_parts) if summary_parts else "暂无学业数据"
+
+    # 6. 格式化错题列表（返回简洁版）
+    mistake_list = []
+    for m in mistakes:
+        text_preview = m.ocr_text
+        if text_preview and len(text_preview) > 50:
+            text_preview = text_preview[:50] + "..."
+        mistake_list.append({
+            "id": m.id,
+            "course_name": m.course_name,
+            "ocr_text": text_preview,
+            "created_at": m.created_at.isoformat() if m.created_at else None,
+        })
+
     return {
         "code": 200,
         "data": {
-            "mistakes": [m.model_dump() for m in user_profile.mistakes],
-            "course_scores": user_profile.course_scores,
-            "study_duration": user_profile.study_duration,
-            "summary": user_profile.summary,
-            "total_mistakes": len(user_profile.mistakes)
+            "mistakes": mistake_list,
+            "latest_scores": latest_scores,
+            "total_durations": total_durations,
+            "summary": summary,
+            "total_mistakes": len(mistakes)
         }
     }
