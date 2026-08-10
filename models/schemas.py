@@ -8,7 +8,7 @@ class MistakeRecord(BaseModel):
     """单条错题记录"""
     course_name: str  # 所属课程（强制）
     ocr_text: str  # OCR 识别的文字
-    image_path: str  # 图片存储路径（用于追溯）
+    # image_path: str  # 图片存储路径（用于追溯）
     uploaded_at: datetime = datetime.now()  # 上传时间
     # 后续可扩展：
     # knowledge_points: List[str]         # 提取的知识点标签（RAG后填充）

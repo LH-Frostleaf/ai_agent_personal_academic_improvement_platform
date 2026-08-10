@@ -22,3 +22,17 @@ storage/uploads/
 # 操作系统隐藏文件
 .DS_Store
 Thumbs.db
+
+# 数据库相关
+# 1. 忽略整个 instance 文件夹（里面存放 .db 文件）
+instance/
+
+# 2. 忽略所有 SQLite 数据库文件（以防万一）
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# 3. 忽略数据库迁移文件（后续用 Alembic 的话）
+alembic_version/
+migrations/

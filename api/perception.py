@@ -37,7 +37,7 @@ async def upload_mistake(
         mistake = MistakeRecord(
             course_name=course_name,
             ocr_text=ocr_text,
-            image_path=saved_path,
+            # image_path=saved_path,
             uploaded_at=datetime.now()
         )
 
