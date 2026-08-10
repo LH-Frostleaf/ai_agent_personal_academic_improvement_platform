@@ -1,4 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from sqlalchemy import func
+
 from config.upload_config import ALLOWED_EXTENSIONS
 from config.database_config import get_db
 from models.db_models import User, Mistake, StudyRecord
@@ -96,39 +98,100 @@ async def upload_mistake(
         pass
 
 
+# ==================== 2. 上传学习情况接口 ====================
 @router.put("/profile/update")
 async def update_study_profile(
-        courses: List[CourseStudyInfo]  # 前端传课程列表
+    courses: List[CourseStudyInfo],
+    db: Session = Depends(get_db)
 ):
     """
-    学习情况：更新各科成绩和学习时长
+    学习情况：记录每次提交的成绩和新增学习时长（追加写入）
     """
     try:
+        # 1. 获取当前用户
+        current_user = get_or_create_test_user(db)
+
+        # 2. 校验并批量插入
+        inserted_courses = []
         for course in courses:
-            # 更新成绩
+            # 校验成绩范围
             if course.score is not None:
-                # 校验成绩范围
                 if course.score < 0 or course.score > 100:
-                    raise HTTPException(400, f"{course.course_name} 成绩必须在 0-100 之间")
-                user_profile.course_scores[course.course_name] = course.score
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"{course.course_name} 成绩必须在 0-100 之间，当前值：{course.score}"
+                    )
 
-            # 累加学习时长
-            if course.study_duration is not None:
-                if course.study_duration < 0:
-                    raise HTTPException(400, f"{course.course_name} 学习时长不能为负数")
-                user_profile.study_duration[course.course_name] += course.study_duration
+            # 校验学习时长不能为负
+            if course.study_duration is not None and course.study_duration < 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{course.course_name} 学习时长不能为负数，当前值：{course.study_duration}"
+                )
 
-        return {
-            "code": 200,
-            "message": "✅ 学习情况更新成功",
-            "data": {
-                "course_scores": user_profile.course_scores,
-                "study_duration": user_profile.study_duration
-            }
-        }
+            # 创建新记录
+            new_record = StudyRecord(
+                user_id=current_user.id,
+                course_name=course.course_name,
+                score=course.score,
+                study_duration=course.study_duration
+            )
+            db.add(new_record)
+            inserted_courses.append(course.course_name)
 
+        # 提交事务
+        db.commit()
+
+    except HTTPException:
+        # 校验失败，回滚
+        db.rollback()
+        raise
     except Exception as e:
-        raise HTTPException(500, f"更新失败: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"数据库写入失败: {str(e)}")
+
+    # 3. 查询最新成绩（每个课程取最新一条记录）
+    # 子查询
+    subquery = db.query(
+        StudyRecord.course_name,
+        func.max(StudyRecord.id).label('latest_id')
+    ).filter(
+        StudyRecord.user_id == current_user.id
+    ).group_by(
+        StudyRecord.course_name
+    ).subquery()
+
+    # 主查询
+    latest_records = db.query(StudyRecord).join(
+        subquery,
+        StudyRecord.id == subquery.c.latest_id
+    ).all()
+
+    # 转换成字典
+    latest_scores = {r.course_name: r.score for r in latest_records}
+
+    # 4. 查询累计学习时长
+    duration_summary = db.query(
+        StudyRecord.course_name,
+        func.sum(StudyRecord.study_duration).label('total_duration')
+    ).filter(
+        StudyRecord.user_id == current_user.id
+    ).group_by(
+        StudyRecord.course_name
+    ).all()
+
+    total_durations = {row.course_name: row.total_duration for row in duration_summary}
+
+    # 5. 返回结果
+    return {
+        "code": 200,
+        "message": f"✅ 已记录 {len(inserted_courses)} 门课程的学习情况",
+        "data": {
+            "latest_scores": latest_scores,
+            "total_durations": total_durations,
+            "inserted_courses": inserted_courses
+        }
+    }
 
 
 @router.get("/profile")
