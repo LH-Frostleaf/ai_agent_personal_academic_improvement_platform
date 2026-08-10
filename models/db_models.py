@@ -38,6 +38,6 @@ class StudyRecord(Base):
     study_duration = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (UniqueConstraint('user_id', 'course_name'),)
+    # __table_args__ = (UniqueConstraint('user_id', 'course_name'),)
 
     owner = relationship("User", back_populates="courses")

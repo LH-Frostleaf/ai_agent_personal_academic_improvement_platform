@@ -266,10 +266,10 @@ async def get_user_profile(
     return {
         "code": 200,
         "data": {
+            "total_mistakes": len(mistakes),
             "mistakes": mistake_list,
             "latest_scores": latest_scores,
             "total_durations": total_durations,
-            "summary": summary,
-            "total_mistakes": len(mistakes)
+            "summary": summary
         }
     }
