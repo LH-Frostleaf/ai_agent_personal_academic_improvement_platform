@@ -13,20 +13,20 @@ router = APIRouter()
 
 # 临时存储（后续换成数据库）
 user_profile = UserAcademicProfile()
-#
-# # ==================== 辅助函数：获取当前用户 ====================
-# def get_or_create_test_user(db: Session) -> User:
-#     """
-#     开发阶段：固定使用 user_id=1 的测试用户
-#     如果不存在则自动创建
-#     """
-#     user = db.query(User).filter(User.id == 1).first()
-#     if not user:
-#         user = User(username="test_user", password_hash="dev_mode")
-#         db.add(user)
-#         db.commit()
-#         db.refresh(user)
-#     return user
+
+# ==================== 辅助函数：获取当前用户 ====================
+def get_or_create_test_user(db: Session) -> User:
+    """
+    开发阶段：固定使用 user_id=1 的测试用户
+    如果不存在则自动创建
+    """
+    user = db.query(User).filter(User.id == 1).first()
+    if not user:
+        user = User(id=1, username="test_user", password_hash="dev_mode")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
 
 
 @router.post("/mistakes/upload")
