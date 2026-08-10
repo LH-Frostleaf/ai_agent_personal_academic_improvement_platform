@@ -1,9 +1,10 @@
-import os
-
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from config.upload_config import ALLOWED_EXTENSIONS
+from config.database_config import get_db
+from models.db_models import User, Mistake, StudyRecord
 from models.schemas import MistakeRecord, CourseStudyInfo, UserAcademicProfile
 from services.ocr_service import save_uploaded_file, extract_text_from_image
+from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
 import asyncio
@@ -12,6 +13,20 @@ router = APIRouter()
 
 # 临时存储（后续换成数据库）
 user_profile = UserAcademicProfile()
+#
+# # ==================== 辅助函数：获取当前用户 ====================
+# def get_or_create_test_user(db: Session) -> User:
+#     """
+#     开发阶段：固定使用 user_id=1 的测试用户
+#     如果不存在则自动创建
+#     """
+#     user = db.query(User).filter(User.id == 1).first()
+#     if not user:
+#         user = User(username="test_user", password_hash="dev_mode")
+#         db.add(user)
+#         db.commit()
+#         db.refresh(user)
+#     return user
 
 
 @router.post("/mistakes/upload")
