@@ -13,7 +13,7 @@ class User(Base):
 
     # 关联（一对多）
     mistakes = relationship("Mistake", back_populates="owner")
-    courses = relationship("UserCourse", back_populates="owner")
+    courses = relationship("StudyRecord", back_populates="owner")
 
 class Mistake(Base):
     __tablename__ = "mistakes"
@@ -29,15 +29,15 @@ class Mistake(Base):
 
     owner = relationship("User", back_populates="mistakes")
 
-class UserCourse(Base):
-    __tablename__ = "user_courses"
+class StudyRecord(Base):
+    __tablename__ = "study_records"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     course_name = Column(String, nullable=False)
     score = Column(Float, nullable=True)
     study_duration = Column(Float, nullable=True)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (UniqueConstraint('user_id', 'course_name'),)
 
