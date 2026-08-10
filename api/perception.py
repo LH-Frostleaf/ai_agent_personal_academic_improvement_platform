@@ -5,26 +5,20 @@ from config.upload_config import ALLOWED_EXTENSIONS
 from config.database_config import get_db
 from models.schemas import CourseStudyInfo
 from models.db_models import User, Mistake, StudyRecord
-from services.ocr_service import save_uploaded_file, extract_text_from_image
 from sqlalchemy.orm import Session
 from typing import List
 import asyncio
 
-router = APIRouter()
+from services.ocr_service import save_uploaded_file, extract_text_from_image
+from services.user_service import get_or_create_test_user
+from services.mistake_service import get_user_mistakes, count_user_mistakes
+from services.study_service import (
+    get_latest_scores,
+    get_total_durations,
+    generate_study_summary
+)
 
-# ==================== 辅助函数：获取当前用户 ====================
-def get_or_create_test_user(db: Session) -> User:
-    """
-    开发阶段：固定使用 user_id=1 的测试用户
-    如果不存在则自动创建
-    """
-    user = db.query(User).filter(User.id == 1).first()
-    if not user:
-        user = User(id=1, username="test_user", password_hash="dev_mode")
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    return user
+router = APIRouter()
 
 
 # ==================== 1. 错题上传接口 ====================
@@ -66,9 +60,7 @@ async def upload_mistake(
         db.refresh(db_mistake)
 
         # 5. 查询当前用户总错题数
-        total_count = db.query(Mistake).filter(
-            Mistake.user_id == current_user.id
-        ).count()
+        total_count = count_user_mistakes(db, current_user.id)
 
         # 6. 返回成功响应
         return {
@@ -147,36 +139,10 @@ async def update_study_profile(
         raise HTTPException(status_code=500, detail=f"数据库写入失败: {str(e)}")
 
     # 3. 查询最新成绩（每个课程取最新一条记录）
-    # 子查询
-    subquery = db.query(
-        StudyRecord.course_name,
-        func.max(StudyRecord.id).label('latest_id')
-    ).filter(
-        StudyRecord.user_id == current_user.id
-    ).group_by(
-        StudyRecord.course_name
-    ).subquery()
-
-    # 主查询
-    latest_records = db.query(StudyRecord).join(
-        subquery,
-        StudyRecord.id == subquery.c.latest_id
-    ).all()
-
-    # 转换成字典
-    latest_scores = {r.course_name: r.score for r in latest_records}
+    latest_scores = get_latest_scores(db, current_user.id)
 
     # 4. 查询累计学习时长
-    duration_summary = db.query(
-        StudyRecord.course_name,
-        func.sum(StudyRecord.study_duration).label('total_duration')
-    ).filter(
-        StudyRecord.user_id == current_user.id
-    ).group_by(
-        StudyRecord.course_name
-    ).all()
-
-    total_durations = {row.course_name: row.total_duration for row in duration_summary}
+    total_durations = get_total_durations(db, current_user.id)
 
     # 5. 返回结果
     return {
@@ -202,55 +168,21 @@ async def get_user_profile(
     current_user = get_or_create_test_user(db)
 
     # 2. 查询所有错题
-    mistakes = db.query(Mistake).filter(
-        Mistake.user_id == current_user.id
-    ).order_by(Mistake.created_at.desc()).all()
+    mistakes = get_user_mistakes(db, current_user.id)
 
-    # 3. 查询最新成绩（每个课程取最新一条记录）
-    subquery = db.query(
-        StudyRecord.course_name,
-        func.max(StudyRecord.id).label('latest_id')
-    ).filter(
-        StudyRecord.user_id == current_user.id
-    ).group_by(
-        StudyRecord.course_name
-    ).subquery()
+    # 3. 查询错题总数
+    total_mistakes = count_user_mistakes(db, current_user.id)
 
-    latest_records = db.query(StudyRecord).join(
-        subquery,
-        StudyRecord.id == subquery.c.latest_id
-    ).all()
+    # 4. 查询最新成绩（每个课程取最新一条记录）
+    latest_scores = get_latest_scores(db, current_user.id)
 
-    latest_scores = {r.course_name: r.score for r in latest_records}
+    # 5. 查询累计学习时长
+    total_durations = get_total_durations(db, current_user.id)
 
-    # 4. 查询累计学习时长
-    duration_summary = db.query(
-        StudyRecord.course_name,
-        func.sum(StudyRecord.study_duration).label('total_duration')
-    ).filter(
-        StudyRecord.user_id == current_user.id
-    ).group_by(
-        StudyRecord.course_name
-    ).all()
+    # 6. 生成摘要
+    summary = generate_study_summary(latest_scores, total_durations, total_mistakes)
 
-    total_durations = {row.course_name: row.total_duration for row in duration_summary}
-
-    # 5. 生成摘要
-    summary_parts = []
-    if latest_scores:
-        valid_scores = [v for v in latest_scores.values() if v is not None]
-        if valid_scores:
-            avg = sum(valid_scores) / len(valid_scores)
-            summary_parts.append(f"各科最新平均成绩 {avg:.1f} 分")
-    if total_durations:
-        total_hours = sum(total_durations.values())
-        summary_parts.append(f"累计学习时长 {total_hours:.1f} 小时")
-    if mistakes:
-        summary_parts.append(f"已收录 {len(mistakes)} 道错题")
-
-    summary = "；".join(summary_parts) if summary_parts else "暂无学业数据"
-
-    # 6. 格式化错题列表（返回简洁版）
+    # 7. 格式化错题列表（返回简洁版）
     mistake_list = []
     for m in mistakes:
         text_preview = m.ocr_text
@@ -266,7 +198,7 @@ async def get_user_profile(
     return {
         "code": 200,
         "data": {
-            "total_mistakes": len(mistakes),
+            "total_mistakes": total_mistakes,
             "mistakes": mistake_list,
             "latest_scores": latest_scores,
             "total_durations": total_durations,
