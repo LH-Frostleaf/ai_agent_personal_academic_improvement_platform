@@ -3,10 +3,10 @@ from sqlalchemy import func
 
 from config.upload_config import ALLOWED_EXTENSIONS
 from config.database_config import get_db
+from models.schemas import CourseStudyInfo
 from models.db_models import User, Mistake, StudyRecord
 from services.ocr_service import save_uploaded_file, extract_text_from_image
 from sqlalchemy.orm import Session
-from datetime import datetime
 from typing import List
 import asyncio
 
