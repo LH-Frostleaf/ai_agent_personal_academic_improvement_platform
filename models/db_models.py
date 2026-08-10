@@ -21,9 +21,8 @@ class Mistake(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     course_name = Column(String, nullable=False)
-    # ocr_text = Column(Text, nullable=True)
     ocr_text = Column(Text, nullable=True)
-    # image_path = Column(String, nullable=True)
+    image_path = Column(String, nullable=True)
     knowledge_points = Column(String, nullable=True)  # 暂存 JSON 字符串
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

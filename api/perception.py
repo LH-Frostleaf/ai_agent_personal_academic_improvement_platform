@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from config.upload_config import ALLOWED_EXTENSIONS
 from config.database_config import get_db
 from models.db_models import User, Mistake, StudyRecord
@@ -29,53 +29,70 @@ def get_or_create_test_user(db: Session) -> User:
     return user
 
 
+# ==================== 1. 错题上传接口 ====================
 @router.post("/mistakes/upload")
 async def upload_mistake(
-        screenshot: UploadFile = File(...),
-        course_name: str = Form(...)  # 强制选择所属课程
+    screenshot: UploadFile = File(...),
+    course_name: str = Form(...),
+    db: Session = Depends(get_db)
 ):
     """
     题目解析：上传错题截图 + 所属课程
     """
     # 1. 校验文件类型
     if not screenshot.filename.lower().endswith(tuple(ALLOWED_EXTENSIONS)):
-        raise HTTPException(400, f"只支持 {ALLOWED_EXTENSIONS} 格式")
+        raise HTTPException(
+            status_code=400,
+            detail=f"只支持 {', '.join(ALLOWED_EXTENSIONS)} 格式的图片"
+        )
 
     saved_path = None
     try:
-        # 2. 保存图片并 OCR
+        # 2. 获取当前用户
+        current_user = get_or_create_test_user(db)
+
+        # 3. 保存图片并 OCR
         loop = asyncio.get_running_loop()
         saved_path = await loop.run_in_executor(None, save_uploaded_file, screenshot)
-        ocr_text = await loop.run_in_executor(None, extract_text_from_image, saved_path)
+        ocr_result = await loop.run_in_executor(None, extract_text_from_image, saved_path)
 
-        # 3. 生成错题记录（此时还没有知识点标签，后续 RAG 处理）
-        mistake = MistakeRecord(
+        # 4. 存入数据库
+        db_mistake = Mistake(
+            user_id=current_user.id,
             course_name=course_name,
-            ocr_text=ocr_text,
-            # image_path=saved_path,
-            uploaded_at=datetime.now()
+            ocr_text=ocr_result,       # 目前清洗逻辑已合并，直接复用
+            image_path=saved_path,
         )
+        db.add(db_mistake)
+        db.commit()
+        db.refresh(db_mistake)
 
-        # 4. 存入用户画像（临时存储，后续换数据库）
-        user_profile.mistakes.append(mistake)
+        # 5. 查询当前用户总错题数
+        total_count = db.query(Mistake).filter(
+            Mistake.user_id == current_user.id
+        ).count()
 
-        # 5. 返回成功响应 + 当前错题总数
+        # 6. 返回成功响应
         return {
             "code": 200,
-            "message": f"✅ 已收录 {course_name} 错题，当前共 {len(user_profile.mistakes)} 道",
+            "message": f"✅ 已收录 {course_name} 错题，当前共 {total_count} 道",
             "data": {
-                "mistake": mistake.model_dump(),
-                "total_count": len(user_profile.mistakes)
+                "mistake": {
+                    "id": db_mistake.id,
+                    "course_name": db_mistake.course_name,
+                    "ocr_text": db_mistake.ocr_text[:100] + "..." if len(db_mistake.ocr_text or "") > 100 else db_mistake.ocr_text,
+                    "created_at": db_mistake.created_at.isoformat() if db_mistake.created_at else None,
+                },
+                "total_count": total_count
             }
         }
 
     except Exception as e:
-        # 异常处理
-        raise HTTPException(500, f"服务器处理出错: {str(e)}")
+        # 如果有异常，回滚事务
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"服务器处理出错: {str(e)}")
     finally:
-        # 注意：这里不删除图片，因为后面要用于回溯
-        # 或者可以定期清理：
-        # os.remove(saved_path)
+        # 注意：图片保留用于回溯，不删除
         pass
 
 
