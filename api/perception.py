@@ -9,7 +9,7 @@ from typing import List
 import asyncio
 
 from services.ocr_service import save_uploaded_file, extract_text_from_image
-from services.user_service import get_or_create_test_user
+from dependencies.auth_deps import get_current_user
 from services.mistake_service import get_user_mistakes, count_user_mistakes
 from services.study_service import (
     get_latest_scores,
@@ -25,12 +25,13 @@ router = APIRouter()
 async def upload_mistake(
     screenshot: UploadFile = File(...),
     course_name: str = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # 1. 获取当前用户
 ):
     """
     题目解析：上传错题截图 + 所属课程
     """
-    # 1. 校验文件类型
+    # 2. 校验文件类型
     if not screenshot.filename.lower().endswith(tuple(ALLOWED_EXTENSIONS)):
         raise HTTPException(
             status_code=400,
@@ -39,8 +40,6 @@ async def upload_mistake(
 
     saved_path = None
     try:
-        # 2. 获取当前用户
-        current_user = get_or_create_test_user(db)
 
         # 3. 保存图片并 OCR
         loop = asyncio.get_running_loop()
@@ -89,14 +88,13 @@ async def upload_mistake(
 @router.put("/profile/update")
 async def update_study_profile(
     courses: List[CourseStudyInfo],
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # 1. 获取当前用户
 ):
     """
     学习情况：记录每次提交的成绩和新增学习时长（追加写入）
     """
     try:
-        # 1. 获取当前用户
-        current_user = get_or_create_test_user(db)
 
         # 2. 校验并批量插入
         inserted_courses = []
@@ -158,13 +156,12 @@ async def update_study_profile(
 # ==================== 3. 获取用户画像接口 ====================
 @router.get("/profile")
 async def get_user_profile(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # 1. 获取当前用户
 ):
     """
     获取用户当前学业画像（用于前端数据看板）
     """
-    # 1. 获取当前用户
-    current_user = get_or_create_test_user(db)
 
     # 2. 查询所有错题
     mistakes = get_user_mistakes(db, current_user.id)
