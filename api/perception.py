@@ -107,8 +107,11 @@ async def update_study_profile(
                         detail=f"{course.course_name} 成绩必须在 0-100 之间，当前值：{course.score}"
                     )
 
+            # 若学习时长为空，则设为默认值0
+            if course.study_duration is None:
+                course.study_duration = 0
             # 校验学习时长不能为负
-            if course.study_duration is not None and course.study_duration < 0:
+            elif course.study_duration < 0:
                 raise HTTPException(
                     status_code=400,
                     detail=f"{course.course_name} 学习时长不能为负数，当前值：{course.study_duration}"
