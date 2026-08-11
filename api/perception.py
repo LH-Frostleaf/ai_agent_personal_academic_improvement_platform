@@ -1,5 +1,4 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
-from sqlalchemy import func
 
 from config.upload_config import ALLOWED_EXTENSIONS
 from config.database_config import get_db
