@@ -4,14 +4,16 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 
+from config.settings import settings
+
 # ========== 配置（建议移到 config/settings.py）==========
-SECRET_KEY = "your-secret-key-change-in-production"  # 密钥，JWT 令牌的“签名私章”
-ALGORITHM = "HS256"     # JWT 的签名算法
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 令牌有效期为24小时
+SECRET_KEY = settings.SECRET_KEY  # 密钥，JWT 令牌的“签名私章”
+ALGORITHM = settings.ALGORITHM    # JWT 的签名算法
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES  # 令牌有效期为24小时
 
 # ========== 密码加密 ==========
 # 使用 bcrypt 哈希算法来加密密码，未来想升级到更安全的算法，旧密码依然能用旧方式验证
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
