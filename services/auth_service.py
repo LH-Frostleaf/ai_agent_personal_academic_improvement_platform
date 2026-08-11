@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 
@@ -45,7 +45,13 @@ def decode_access_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except JWTError:
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证令牌已过期，请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="无效的认证令牌",
