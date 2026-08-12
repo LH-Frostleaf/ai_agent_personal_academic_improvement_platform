@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from config.database_config import get_db
+from models.schemas import UserRegister
 from services.user_service import create_user, authenticate_user, get_user_by_id
 from services.auth_service import create_access_token, decode_access_token
 
@@ -14,15 +15,14 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 @router.post("/register")
 async def register(
-        username: str,
-        password: str,
+        user_data: UserRegister,
         db: Session = Depends(get_db)
 ):
     """
     用户注册
     """
     try:
-        user = create_user(db, username, password)
+        user = create_user(db, user_data.username, user_data.password)
         return {
             "code": 200,
             "message": "注册成功",
