@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import perception
-from api import auth
+from api import perception, auth, courses
 
 # 导入数据库配置和所有模型（一定要导入，否则 SQLAlchemy 不知道要建什么表）
 from config.database_config import engine
@@ -23,8 +22,9 @@ app.add_middleware(
 db_models.Base.metadata.create_all(bind=engine)
 
 # 注册路由
-app.include_router(perception.router, prefix="/api/v1", tags=["感知模块"])
+app.include_router(perception.router)
 app.include_router(auth.router)
+app.include_router(courses.router)
 
 @app.get("/")
 def root():

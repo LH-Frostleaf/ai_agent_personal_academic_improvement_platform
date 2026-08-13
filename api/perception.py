@@ -17,7 +17,7 @@ from services.study_service import (
     generate_study_summary
 )
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1", tags=["感知模块"])
 
 
 # ==================== 1. 错题上传接口 ====================
