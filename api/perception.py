@@ -1,3 +1,6 @@
+import datetime
+from zoneinfo import ZoneInfo
+
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 
 from config.upload_config import ALLOWED_EXTENSIONS
@@ -15,6 +18,9 @@ from services.mistake_service import delete_mistake as delete_mistake_service
 from services.study_service import (
     get_latest_scores,
     get_total_durations,
+    get_daily_durations,
+    get_weekly_durations,
+    get_weekly_range,
     generate_study_summary
 )
 
@@ -107,7 +113,7 @@ async def delete_mistake(
     }
 
 
-# ==================== 2. 上传学习情况接口 ====================
+# ==================== 2.1 上传学习情况接口 ====================
 @router.put("/profile/update")
 async def update_study_profile(
     courses: List[CourseStudyInfo],
@@ -178,6 +184,66 @@ async def update_study_profile(
         }
     }
 
+# ==================== 2.2 本日学习情况接口 ====================
+@router.get("/stats/daily")
+async def get_daily_stats(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    """
+    获取今日各科学习时长 + 最近成绩
+    """
+    beijing_tz = ZoneInfo("Asia/Shanghai")
+    today = datetime.now(beijing_tz)
+
+    daily_durations = get_daily_durations(db, current_user.id, today)
+    latest_scores = get_latest_scores(db, current_user.id)
+
+    # 合并所有课程（取并集）
+    all_courses = set(daily_durations.keys()) | set(latest_scores.keys())
+
+    data = []
+    for course in all_courses:
+        data.append({
+            "course_name": course,
+            "today_duration": daily_durations.get(course, 0),
+            "latest_score": latest_scores.get(course)
+        })
+
+    return {
+        "code": 200,
+        "data": {
+            "date": today.strftime("%Y-%m-%d"),
+            "courses": data
+        }
+    }
+
+# ==================== 2.3 本周学习情况接口 ====================
+@router.get("/stats/weekly")
+async def get_weekly_stats(
+        week_offset: int = 0,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    """
+    获取某周各科学习时长
+    week_offset: 0=本周, -1=上周, -2=上上周... 最多-6
+    """
+    if week_offset < -6 or week_offset > 0:
+        raise HTTPException(status_code=400, detail="只支持查看本周至前6周")
+
+    weekly_durations = get_weekly_durations(db, current_user.id, week_offset)
+    start_date, end_date = get_weekly_range(week_offset)
+
+    return {
+        "code": 200,
+        "data": {
+            "week_offset": week_offset,
+            "start_date": start_date,
+            "end_date": end_date,
+            "durations": weekly_durations
+        }
+    }
 
 # ==================== 3. 获取用户画像接口 ====================
 @router.get("/profile")
