@@ -8,3 +8,4 @@ dashscope>=1.14.0             # 阿里云百炼 SDK
 sqlalchemy
 python-jose[cryptography]>=3.3.0    # 生成和验证 JWT（JSON Web Token）
 passlib>=1.7.4      # 密码哈希加密（bcrypt 算法）
+tzdata
