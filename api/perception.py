@@ -10,7 +10,7 @@ import asyncio
 
 from services.ocr_service import save_uploaded_file, extract_text_from_image
 from dependencies.auth_deps import get_current_user
-from services.mistake_service import get_user_mistakes, count_user_mistakes
+from services.mistake_service import get_user_mistakes, count_user_mistakes, delete_mistake
 from services.study_service import (
     get_latest_scores,
     get_total_durations,
@@ -20,7 +20,7 @@ from services.study_service import (
 router = APIRouter(prefix="/api/v1", tags=["感知模块"])
 
 
-# ==================== 1. 错题上传接口 ====================
+# ==================== 1.1 错题上传接口 ====================
 @router.post("/mistakes/upload")
 async def upload_mistake(
     screenshot: UploadFile = File(...),
@@ -82,6 +82,28 @@ async def upload_mistake(
     finally:
         # 注意：图片保留用于回溯，不删除
         pass
+
+# ==================== 1.2 错题删除接口 ====================
+@router.delete("/mistakes/{mistake_id}")
+async def delete_mistake(
+        mistake_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    """
+    删除错题（仅限本人）
+    """
+
+    success = delete_mistake(db, mistake_id, current_user.id)
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail="错题不存在或您无权删除"
+        )
+    return {
+        "code": 200,
+        "message": "删除成功"
+    }
 
 
 # ==================== 2. 上传学习情况接口 ====================
