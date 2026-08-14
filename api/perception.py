@@ -10,7 +10,8 @@ import asyncio
 
 from services.ocr_service import save_uploaded_file, extract_text_from_image
 from dependencies.auth_deps import get_current_user
-from services.mistake_service import get_user_mistakes, count_user_mistakes, delete_mistake
+from services.mistake_service import get_user_mistakes, count_user_mistakes
+from services.mistake_service import delete_mistake as delete_mistake_service
 from services.study_service import (
     get_latest_scores,
     get_total_durations,
@@ -94,7 +95,7 @@ async def delete_mistake(
     删除错题（仅限本人）
     """
 
-    success = delete_mistake(db, mistake_id, current_user.id)
+    success = delete_mistake_service(db, mistake_id, current_user.id)
     if not success:
         raise HTTPException(
             status_code=404,

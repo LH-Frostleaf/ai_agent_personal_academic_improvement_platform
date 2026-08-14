@@ -26,6 +26,10 @@ def delete_mistake(db: Session, mistake_id: int, user_id: int) -> bool:
     ).first()
     if not mistake:
         return False
+    print(f"[删除] 找到记录: id={mistake.id}, course={mistake.course_name}")
     db.delete(mistake)
     db.commit()
+    print("[删除] 提交成功")
+    still_exists = db.query(Mistake).filter(Mistake.id == mistake_id).first() is not None
+    print(f"[删除] 删除后记录仍存在: {still_exists}")
     return True
