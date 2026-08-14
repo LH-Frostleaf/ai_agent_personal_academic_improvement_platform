@@ -13,7 +13,8 @@ def get_latest_scores(db: Session, user_id: int) -> Dict[str, float]:
         StudyRecord.course_name,
         func.max(StudyRecord.id).label('latest_id')
     ).filter(
-        StudyRecord.user_id == user_id
+        StudyRecord.user_id == user_id,
+        StudyRecord.score.isnot(None)   # 只考虑有成绩的记录
     ).group_by(
         StudyRecord.course_name
     ).subquery()
