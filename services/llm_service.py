@@ -9,6 +9,8 @@ from config.settings import settings
 
 dashscope.api_key = settings.DASHSCOPE_API_KEY
 
+dashscope.base_http_api_url = 'https://dashscope.aliyuncs.com/api/v1'
+
 
 async def stream_explain_mistake(
     course_name: str,
@@ -47,14 +49,20 @@ async def stream_explain_mistake(
     )
 
     # 3. 逐块（chunk）返回结果
-    for response in responses:
-        if response.status_code == 200:
-            # 从流式响应中提取文本
-            chunk = response.output.choices[0].message.content
-            if chunk:
-                yield chunk
-        else:
-            # 处理错误
-            error_msg = f"大模型API调用失败: {response.message}"
-            yield f"[ERROR] {error_msg}"
-            break
+    try:
+        for response in responses:
+            if response.status_code == 200:
+                # 安全获取 content
+                if response.output and response.output.choices:
+                    chunk = response.output.choices[0].message.content
+                    if chunk:  # 只 yield 非空内容
+                        yield chunk
+                # 如果遇到空 chunk，可以继续等待下一个，不处理
+            else:
+                # 安全提取错误信息
+                error_detail = getattr(response, 'message', None) or getattr(response, 'code', '未知错误')
+                error_msg = f"大模型API调用失败: {error_detail}"
+                yield f"[ERROR] {error_msg}"
+                break
+    except Exception as e:
+        yield f"[ERROR] 服务器内部错误: {str(e)}"
