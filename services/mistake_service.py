@@ -33,3 +33,7 @@ def delete_mistake(db: Session, mistake_id: int, user_id: int) -> bool:
     still_exists = db.query(Mistake).filter(Mistake.id == mistake_id).first() is not None
     print(f"[删除] 删除后记录仍存在: {still_exists}")
     return True
+
+def get_mistake_by_id(db: Session, mistake_id: int) -> Mistake | None:
+    """根据 ID 获取错题"""
+    return db.query(Mistake).filter(Mistake.id == mistake_id).first()

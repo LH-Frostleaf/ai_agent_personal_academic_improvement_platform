@@ -6,7 +6,7 @@ from datetime import datetime
 from config.upload_config import UPLOAD_DIR  # 假设你有此配置
 import re   # Python 内置的正则表达式模块
 
-# 设置 API Key（全局只需设置一次）
+# 设置 API Key
 dashscope.api_key = settings.DASHSCOPE_API_KEY
 
 # 设置每张图片最大大小

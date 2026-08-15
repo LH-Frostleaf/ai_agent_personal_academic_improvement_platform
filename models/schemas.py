@@ -14,3 +14,7 @@ class UserRegister(BaseModel):
     """用户注册请求体"""
     username: str = Field(..., min_length=2, max_length=20, description="用户名")
     password: str = Field(..., min_length=6, max_length=30, description="密码")
+
+
+class MistakeAnalysisRequest(BaseModel):
+    mistake_id: int

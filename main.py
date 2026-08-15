@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import perception, auth, courses
+from api import perception, auth, courses, llm
 
 # 导入数据库配置和所有模型（一定要导入，否则 SQLAlchemy 不知道要建什么表）
 from config.database_config import engine
@@ -30,6 +30,7 @@ app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 app.include_router(perception.router)
 app.include_router(auth.router)
 app.include_router(courses.router)
+app.include_router(llm.router)
 
 @app.get("/")
 def root():
