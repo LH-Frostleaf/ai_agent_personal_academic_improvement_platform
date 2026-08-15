@@ -21,6 +21,11 @@ app.add_middleware(
 # 创建所有表（如果不存在的话）
 db_models.Base.metadata.create_all(bind=engine)
 
+from fastapi.staticfiles import StaticFiles
+
+# 挂载存储目录，使图片可通过 URL 访问
+app.mount("/storage", StaticFiles(directory="storage"), name="storage")
+
 # 注册路由
 app.include_router(perception.router)
 app.include_router(auth.router)

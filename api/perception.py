@@ -75,7 +75,8 @@ async def upload_mistake(
                 "mistake": {
                     "id": db_mistake.id,
                     "course_name": db_mistake.course_name,
-                    "ocr_text": db_mistake.ocr_text[:100] + "..." if len(db_mistake.ocr_text or "") > 100 else db_mistake.ocr_text,
+                    # "ocr_text": db_mistake.ocr_text[:100] + "..." if len(db_mistake.ocr_text or "") > 100 else db_mistake.ocr_text,
+                    "ocr_text": db_mistake.ocr_text,
                     "created_at": db_mistake.created_at.isoformat() if db_mistake.created_at else None,
                 },
                 "total_count": total_count
@@ -287,7 +288,8 @@ async def get_user_profile(
         "code": 200,
         "data": {
             "total_mistakes": total_mistakes,
-            "mistakes": mistake_list,
+            # "mistakes": mistake_list,
+            "mistakes": mistakes,
             "latest_scores": latest_scores,
             "total_durations": total_durations,
             "summary": summary
