@@ -15,7 +15,7 @@ async def create_diagnosis(
 ):
     """生成新的诊断报告"""
     try:
-        result = await generate_diagnosis(db, current_user.id)
+        result = generate_diagnosis(db, current_user.id)
         if "error" in result:
             raise HTTPException(status_code=400, detail=result["error"])
         return {"code": 200, "message": "诊断报告生成成功", "data": result}

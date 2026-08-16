@@ -6,7 +6,6 @@ from services.study_service import get_latest_scores, get_total_durations
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import json
-import asyncio
 
 def get_recent_mistake_kps(db: Session, user_id: int, days: int = 30) -> Dict[str, Dict]:
     """统计最近N天错题关联的知识点频次，返回 {kp_id: {"count": count, "subject": subject, "name": name}}"""
@@ -109,7 +108,7 @@ def calculate_priorities(kp_stats: Dict, scores: Dict, durations: Dict) -> List[
     prioritized.sort(key=lambda x: x["priority"], reverse=True)
     return prioritized[:7]  # 取前7个
 
-async def generate_diagnosis(db: Session, user_id: int) -> Dict[str, Any]:
+def generate_diagnosis(db: Session, user_id: int) -> Dict[str, Any]:
     """生成完整诊断报告"""
     # 1. 获取数据
     kp_stats = get_recent_mistake_kps(db, user_id, days=30)
@@ -123,7 +122,7 @@ async def generate_diagnosis(db: Session, user_id: int) -> Dict[str, Any]:
     weak_points = calculate_priorities(kp_stats, scores, durations)
 
     # 3. 生成摘要
-    summary = await asyncio.to_thread(generate_diagnosis_summary(weak_points, scores, durations))
+    summary = generate_diagnosis_summary(weak_points, scores, durations)
 
     # 4. 存储报告
     report = DiagnosisReport(
