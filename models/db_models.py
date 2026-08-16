@@ -39,3 +39,12 @@ class StudyRecord(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="courses")
+
+class DiagnosisReport(Base):
+    __tablename__ = "diagnosis_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    report_summary = Column(Text)
+    weak_points = Column(Text)  # JSON 字符串
+    generated_at = Column(DateTime(timezone=True), server_default=func.now())

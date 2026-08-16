@@ -1,6 +1,6 @@
 import os
 import json
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, List, Dict
 from openai import OpenAI
 from config.settings import settings
 from rag.prompts.knowledge_extract import EXTRACT_PROMPT_TEMPLATE
@@ -100,3 +100,38 @@ async def extract_knowledge_points(ocr_text: str, course_name: str = None):
     except Exception as e:
         print(f"LLM 提取知识点失败: {e}")
         return []
+
+async def generate_diagnosis_summary(weak_points: List[Dict], scores: Dict, durations: Dict) -> str:
+    if not weak_points:
+        return "暂无明确的薄弱知识点，继续加油！"
+
+    # 构建 prompt
+    kp_text = "\n".join([f"- {kp['name']}（{kp['subject']}）：{kp['reason']}" for kp in weak_points[:5]])
+    score_text = "，".join([f"{subject}: {score}分" for subject, score in scores.items()]) if scores else "暂无"
+    duration_text = "，".join([f"{subject}: {duration:.1f}h" for subject, duration in durations.items()]) if durations else "暂无"
+
+    prompt = f"""
+        你是一位学业诊断专家。根据以下学生的薄弱知识点分析，生成一段简洁、有鼓励性的诊断总结。
+
+        薄弱知识点：
+        {kp_text}
+
+        各科成绩：{score_text}
+        各科学习时长：{duration_text}
+
+        请用亲切的语气，指出主要薄弱方向，并给出 2-3 条具体的学习建议。总字数控制在 150 字以内。
+    """
+    try:
+        response = client.chat.completions.create(
+            model="qwen3.8-max",
+            messages=[
+                {"role": "system", "content": "你是学业诊断助手，输出简洁友好的诊断总结。"},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=300
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"生成诊断摘要失败: {e}")
+        return "基于你的错题数据，建议优先复习上述薄弱知识点，并合理安排学习时间。"
