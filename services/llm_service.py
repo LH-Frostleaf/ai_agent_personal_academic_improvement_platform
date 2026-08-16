@@ -101,7 +101,7 @@ async def extract_knowledge_points(ocr_text: str, course_name: str = None):
         print(f"LLM 提取知识点失败: {e}")
         return []
 
-async def generate_diagnosis_summary(weak_points: List[Dict], scores: Dict, durations: Dict) -> str:
+def generate_diagnosis_summary(weak_points: List[Dict], scores: Dict, durations: Dict) -> str:
     if not weak_points:
         return "暂无明确的薄弱知识点，继续加油！"
 

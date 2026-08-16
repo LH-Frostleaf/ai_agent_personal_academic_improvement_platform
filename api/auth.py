@@ -59,26 +59,26 @@ async def login(
         data={"sub": str(user.id), "username": user.username}
     )
 
-    # 返回用户信息（让前端一次拿到所有数据）
-    return {
-        "code": 200,
-        "message": "登录成功",
-        "data": {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "created_at": user.created_at.isoformat() if user.created_at else None
-            }
-        }
-    }
-
-    # # 返回格式用标准 OAuth2 格式
+    # # 返回用户信息（让前端一次拿到所有数据）
     # return {
-    #     "access_token": access_token,
-    #     "token_type": "bearer"
+    #     "code": 200,
+    #     "message": "登录成功",
+    #     "data": {
+    #         "access_token": access_token,
+    #         "token_type": "bearer",
+    #         "user": {
+    #             "id": user.id,
+    #             "username": user.username,
+    #             "created_at": user.created_at.isoformat() if user.created_at else None
+    #         }
+    #     }
     # }
+
+    # 返回格式用标准 OAuth2 格式
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 
 @router.get("/me")
