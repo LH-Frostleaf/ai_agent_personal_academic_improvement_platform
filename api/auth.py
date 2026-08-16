@@ -60,19 +60,7 @@ async def login(
     )
 
     # 返回用户信息（让前端一次拿到所有数据）
-    return {
-        "code": 200,
-        "message": "登录成功",
-        "data": {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "created_at": user.created_at.isoformat() if user.created_at else None
-            }
-        }
-    }
+
 
     # # 返回格式用标准 OAuth2 格式
     # return {
