@@ -1,7 +1,10 @@
 import os
+import json
 from typing import AsyncGenerator, Optional
 from openai import OpenAI
 from config.settings import settings
+from rag.prompts.knowledge_extract import EXTRACT_PROMPT_TEMPLATE
+from services.rag_service import retriever
 
 # 初始化 OpenAI 客户端
 client = OpenAI(
@@ -55,3 +58,45 @@ async def stream_explain_mistake(
         # 捕获异常并返回错误信息
         error_msg = f"大模型API调用失败: {str(e)}"
         yield f"[ERROR] {error_msg}"
+
+async def extract_knowledge_points(ocr_text: str, course_name: str = None):
+    """
+    从 OCR 文本中提取知识点
+    """
+    # 1. RAG 检索候选
+    candidates = retriever.retrieve(ocr_text, top_k=5, subject=course_name)
+    if not candidates:
+        return []
+
+    # 2. 构建 prompt
+    retrieved_text = "\n".join([
+        f"kp_id: {c['kp_id']}, name: {c['name']}" for c in candidates
+    ])
+    prompt = EXTRACT_PROMPT_TEMPLATE.format(retrieved=retrieved_text, ocr_text=ocr_text)
+
+    # 3. 调用 LLM
+    try:
+        response = client.chat.completions.create(
+            model="qwen3.8-max",
+            messages=[
+                {"role": "system", "content": "你是一个知识点提取助手，只输出 JSON。"},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+        )
+        content = response.choices[0].message.content
+        result = json.loads(content)
+        if isinstance(result, list):    # 判断变量 result 是不是一个列表（list）类型
+            # 过滤确保 kp_id 在候选列表中
+            valid_ids = {c['kp_id'] for c in candidates}
+            filtered = [item for item in result if item.get('kp_id') in valid_ids]
+            # 补充 name
+            name_map = {c['kp_id']: c['name'] for c in candidates}
+            for item in filtered:
+                item['name'] = name_map.get(item['kp_id'], '')
+            return filtered
+        else:
+            return []
+    except Exception as e:
+        print(f"LLM 提取知识点失败: {e}")
+        return []

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from config.database_config import Base
@@ -23,7 +23,7 @@ class Mistake(Base):
     course_name = Column(String, nullable=False)
     ocr_text = Column(Text, nullable=True)
     image_path = Column(String, nullable=True)
-    knowledge_points = Column(String, nullable=True)  # 暂存 JSON 字符串
+    knowledge_points = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="mistakes")
