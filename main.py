@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import perception, auth, courses, llm, diagnosis
+from api import perception, auth, courses, llm, diagnosis, resources
 
 # 导入数据库配置和所有模型（一定要导入，否则 SQLAlchemy 不知道要建什么表）
 from config.database_config import engine
@@ -32,6 +32,7 @@ app.include_router(auth.router)
 app.include_router(courses.router)
 app.include_router(llm.router)
 app.include_router(diagnosis.router)
+app.include_router(resources.router)
 @app.get("/")
 def root():
     return {"message": "感知模块已启动，请访问 /docs 查看API文档"}

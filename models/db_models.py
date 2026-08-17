@@ -48,3 +48,37 @@ class DiagnosisReport(Base):
     report_summary = Column(Text)
     weak_points = Column(Text)  # JSON 字符串
     generated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Subject(Base):
+    __tablename__ = "subjects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), unique=True, nullable=False)
+    icon = Column(String(50), nullable=True)
+    sort_order = Column(Integer, default=0)
+
+class KnowledgePoint(Base):
+    __tablename__ = "knowledge_points"
+
+    id = Column(Integer, primary_key=True, index=True)
+    kp_id = Column(String(50), unique=True, nullable=False, index=True)  # 与向量库保持一致
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    parent_kp_id = Column(String(50), nullable=True)  # 父知识点ID（可选，用于层级）
+
+    # 关联关系
+    subject = relationship("Subject", backref="knowledge_points")
+
+class Recommendation(Base):
+    __tablename__ = "recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    knowledge_point_id = Column(Integer, ForeignKey("knowledge_points.id"), nullable=False)
+    title = Column(String(200), nullable=False)
+    type = Column(String(20), nullable=False)  # video / article / exercise / course
+    url = Column(String(500), nullable=True)
+    description = Column(Text, nullable=True)
+    difficulty = Column(Integer, default=2)  # 1-5
+    source = Column(String(50), nullable=True)  # B站 / 慕课 / 自建
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
