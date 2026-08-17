@@ -35,7 +35,7 @@ async def list_knowledge_points(
     kps = get_knowledge_points_by_subject(db, subject_id)
     return {
         "code": 200,
-        "data": [{"id": kp.id, "kp_id": kp.kp_id, "name": kp.name, "description": kp.description} for kp in kps]
+        "data": [{"id": kp.id, "kp_id": kp.kp_id, "name": kp.name} for kp in kps]
     }
 
 @router.get("/resources")

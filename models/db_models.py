@@ -64,7 +64,6 @@ class KnowledgePoint(Base):
     kp_id = Column(String(50), unique=True, nullable=False, index=True)  # 与向量库保持一致
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
     name = Column(String(100), nullable=False)
-    description = Column(Text, nullable=True)
     parent_kp_id = Column(String(50), nullable=True)  # 父知识点ID（可选，用于层级）
 
     # 关联关系

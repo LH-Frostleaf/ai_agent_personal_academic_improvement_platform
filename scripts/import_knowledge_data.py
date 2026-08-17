@@ -55,7 +55,6 @@ def import_knowledge_data(data_dir: str):
                     kp_id=kp_id,
                     subject_id=subject.id,
                     name=name,
-                    description=row.get('description', '') if pd.notna(row.get('description')) else None,
                     parent_kp_id=str(row.get('parent_id', '')) if pd.notna(row.get('parent_id')) else None
                 )
                 db.add(kp)
