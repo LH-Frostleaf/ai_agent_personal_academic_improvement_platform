@@ -2,7 +2,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, desc
 from models.db_models import Mistake, DiagnosisReport
 from services.llm_service import generate_diagnosis_summary
-from services.study_service import get_latest_scores, get_total_durations
+# from services.study_service import get_latest_scores, get_total_durations
+from services import study_service  # 预备后续调用获取信息函数，且防止重名
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import json
@@ -40,11 +41,11 @@ def get_recent_mistake_kps(db: Session, user_id: int, days: int = 30) -> Dict[st
 
 def get_latest_scores(db: Session, user_id: int) -> Dict[str, float]:
     """获取各科最新成绩"""
-    return get_latest_scores(db, user_id)
+    return study_service.get_latest_scores(db, user_id)
 
 def get_total_durations(db: Session, user_id: int) -> Dict[str, float]:
     """获取各科累计学习时长"""
-    return get_total_durations(db, user_id)
+    return study_service.get_total_durations(db, user_id)
 
 def calculate_priorities(kp_stats: Dict, scores: Dict, durations: Dict) -> List[Dict]:
     """计算每个知识点的优先级分数"""
@@ -108,7 +109,7 @@ def calculate_priorities(kp_stats: Dict, scores: Dict, durations: Dict) -> List[
     prioritized.sort(key=lambda x: x["priority"], reverse=True)
     return prioritized[:7]  # 取前7个
 
-def generate_diagnosis(db: Session, user_id: int) -> Dict[str, Any]:
+async def generate_diagnosis(db: Session, user_id: int) -> Dict[str, Any]:
     """生成完整诊断报告"""
     # 1. 获取数据
     kp_stats = get_recent_mistake_kps(db, user_id, days=30)
@@ -122,7 +123,7 @@ def generate_diagnosis(db: Session, user_id: int) -> Dict[str, Any]:
     weak_points = calculate_priorities(kp_stats, scores, durations)
 
     # 3. 生成摘要
-    summary = generate_diagnosis_summary(weak_points, scores, durations)
+    summary = await generate_diagnosis_summary(weak_points, scores, durations)
 
     # 4. 存储报告
     report = DiagnosisReport(
@@ -133,6 +134,7 @@ def generate_diagnosis(db: Session, user_id: int) -> Dict[str, Any]:
     db.add(report)
     db.commit()
     db.refresh(report)
+
 
     return {
         "report_id": report.id,
