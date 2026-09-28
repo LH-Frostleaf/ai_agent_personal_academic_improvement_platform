@@ -4,7 +4,7 @@ venv/
 env/
 
 # 环境变量 (里面有阿里云 API Key，绝对不能提交！)
-.env
+JWT_config.env
 
 # Python 缓存文件
 __pycache__/
